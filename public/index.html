@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeShop — Маркетплейс аккаунтов WoT / WoT Blitz</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a2e;--bg4:#222240;--accent:#6c5ce7;--accent-g:rgba(108,92,231,.3);--green:#00b894;--green-g:rgba(0,184,148,.3);--orange:#f39c12;--red:#e74c3c;--cyan:#00cec9;--t1:#fff;--t2:#a0a0b8;--t3:#6c6c80;--brd:#2a2a3e;--brd2:#3a3a50}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--accent);border-radius:3px}
+
+.btn{padding:8px 16px;border-radius:10px;font-size:12px;font-weight:600;border:none;cursor:pointer;transition:all .3s;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:6px;text-decoration:none;outline:none}.btn:hover{transform:translateY(-1px)}.btn-p{background:linear-gradient(135deg,var(--accent),#a29bfe);color:#fff;box-shadow:0 3px 12px var(--accent-g)}.btn-g{background:linear-gradient(135deg,var(--green),#55efc4);color:#fff;box-shadow:0 3px 12px var(--green-g)}.btn-s{background:var(--bg3);color:var(--t1);border:1px solid var(--brd)}.btn-s:hover{border-color:var(--accent)}.btn-r{background:rgba(231,76,60,.15);color:var(--red);border:1px solid rgba(231,76,60,.3)}.btn-o{background:rgba(243,156,18,.15);color:var(--orange);border:1px solid rgba(243,156,18,.3)}.btn-cyan{background:rgba(0,206,201,.15);color:var(--cyan);border:1px solid rgba(0,206,201,.3)}.btn-full{width:100%;justify-content:center}.btn-lg{padding:12px 24px;font-size:14px}.btn-sm{padding:5px 10px;font-size:10px;border-radius:7px}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.inp{width:100%;background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;outline:none;font-family:'Inter',sans-serif;transition:all .3s}.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-g)}.inp::placeholder{color:var(--t3)}select.inp{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236c6c80' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}textarea.inp{resize:vertical;min-height:70px}
+.form-g{margin-bottom:14px}.form-g label{display:block;font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.header{background:rgba(18,18,26,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--brd);position:sticky;top:0;z-index:100}
+.header-inner{max-width:1600px;margin:0 auto;padding:0 28px;height:68px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:800;font-size:22px;color:var(--t1);flex-shrink:0}.logo-img{width:42px;height:42px;border-radius:12px;object-fit:cover;filter:brightness(.75) saturate(.55) contrast(1.1)}.logo span{background:linear-gradient(135deg,var(--accent),#a29bfe);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav{display:flex;align-items:center;gap:3px;justify-content:center;flex:1}.nav a{color:var(--t2);text-decoration:none;padding:8px 12px;border-radius:9px;font-size:13px;font-weight:500;transition:all .3s;cursor:pointer;white-space:nowrap}.nav a:hover,.nav a.act{color:var(--t1);background:rgba(108,92,231,.1)}.nav-sep{flex:1}
+.online-dot{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--t3);padding:6px 10px;background:var(--bg3);border-radius:8px;border:1px solid var(--brd)}.online-dot .dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pul 2s infinite}@keyframes pul{0%,100%{opacity:1}50%{opacity:.3}}
+.h-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.h-profile{display:flex;align-items:center;gap:10px;cursor:pointer;padding:5px 10px;border-radius:12px;transition:all .2s;border:1px solid transparent}.h-profile:hover{background:rgba(108,92,231,.08);border-color:var(--brd)}
+.h-avatar{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--accent),#a29bfe);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;overflow:hidden;flex-shrink:0}.h-avatar img{width:100%;height:100%;object-fit:cover}
+.h-uinfo{display:flex;flex-direction:column;line-height:1.2}.h-uname{font-size:13px;font-weight:600}.h-ubal{font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px}.h-ubal .avail{color:var(--green)}.h-ubal .frozen{color:var(--orange);font-size:10px}
+
+.page{display:none;max-width:1600px;margin:0 auto;padding:24px 28px;min-height:calc(100vh - 68px)}.page.active{display:block}
+.card{background:var(--bg3);border:1px solid var(--brd);border-radius:14px;overflow:hidden;transition:all .3s}.card:hover{border-color:var(--brd2)}.card-p{padding:18px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px}.sec-t{font-size:20px;font-weight:800}
+.centered-section{text-align:center;max-width:1200px;margin:0 auto}
+
+.hero{text-align:center;padding:50px 0 30px;position:relative}.hero::before{content:'';position:absolute;top:-50%;left:-20%;width:500px;height:500px;background:radial-gradient(circle,var(--accent-g),transparent 70%);animation:fl 8s ease-in-out infinite;pointer-events:none}@keyframes fl{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-30px)}}.hero *{position:relative;z-index:1}
+.hero h1{font-size:40px;font-weight:900;line-height:1.1;margin-bottom:12px}.hero h1 .gr{background:linear-gradient(135deg,var(--accent),#a29bfe,var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}.hero p{font-size:15px;color:var(--t2);max-width:480px;margin:0 auto 22px;line-height:1.5}
+.hero-stats{display:flex;justify-content:center;gap:40px;margin-top:36px;flex-wrap:wrap}.hero-stat .num{font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--accent),#a29bfe);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.hero-stat .lbl{font-size:11px;color:var(--t3);margin-top:2px}
+
+.grid-6{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.grid-4{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+
+.l-card{background:var(--bg3);border:1px solid var(--brd);border-radius:12px;overflow:hidden;transition:all .4s;cursor:pointer;position:relative}.l-card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 10px 25px rgba(0,0,0,.3)}.l-card.promoted{border-color:var(--orange);box-shadow:0 0 12px rgba(243,156,18,.1)}
+.l-img{height:110px;position:relative;overflow:hidden;background:var(--bg4)}.l-img img{width:100%;height:100%;object-fit:cover}.l-img .no-img{display:flex;align-items:center;justify-content:center;height:100%;font-size:32px;opacity:.3}
+.l-badges{position:absolute;top:6px;left:6px;display:flex;gap:3px;flex-wrap:wrap}.l-badge{padding:2px 6px;border-radius:5px;font-size:9px;font-weight:700;backdrop-filter:blur(10px)}.l-badge.disc{background:rgba(231,76,60,.85);color:#fff}.l-badge.promo{background:rgba(243,156,18,.85);color:#fff}.l-badge.af{background:rgba(0,184,148,.85);color:#fff}.l-badge.ap{background:rgba(108,92,231,.85);color:#fff}
+.l-body{padding:8px 10px}.l-game{display:inline-flex;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:600;margin-bottom:4px}.l-game.wot{background:rgba(231,76,60,.15);color:#e74c3c}.l-game.wotb{background:rgba(243,156,18,.15);color:#f39c12}
+.l-title{font-size:11px;font-weight:700;margin-bottom:5px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.l-specs{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:6px}.l-spec .sl{font-size:8px;color:var(--t3);text-transform:uppercase;font-weight:600}.l-spec .sv{font-size:11px;font-weight:600}
+.l-foot{padding:6px 10px;border-top:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center}.l-price{font-size:14px;font-weight:800;color:var(--green)}.l-old{font-size:9px;color:var(--t3);text-decoration:line-through;margin-left:3px}
+.l-seller{display:flex;align-items:center;gap:5px;padding:5px 10px;background:rgba(0,0,0,.2)}.l-seller .av{width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,var(--accent),#a29bfe);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;overflow:hidden}.l-seller .av img{width:100%;height:100%;object-fit:cover}.l-seller .nm{font-size:10px;font-weight:600}
+
+.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding:10px;background:var(--bg2);border:1px solid var(--brd);border-radius:10px}.f-label{font-size:10px;font-weight:600;color:var(--t3)}.f-chips{display:flex;gap:4px}.f-chip{padding:5px 8px;border-radius:7px;font-size:10px;font-weight:500;border:1px solid var(--brd);background:var(--bg3);color:var(--t2);cursor:pointer;transition:all .3s}.f-chip:hover{border-color:var(--accent)}.f-chip.act{background:rgba(108,92,231,.2);border-color:var(--accent);color:var(--accent)}.f-div{width:1px;height:22px;background:var(--brd)}
+
+.upload-area{border:2px dashed var(--brd);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .3s;position:relative}.upload-area:hover{border-color:var(--accent)}.upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer}.upload-area .ic{font-size:24px}.upload-area .tx{font-size:11px;color:var(--t2)}
+.previews{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.preview-item{position:relative;width:70px;height:70px;border-radius:7px;overflow:hidden;border:1px solid var(--brd)}.preview-item img{width:100%;height:100%;object-fit:cover}.preview-item .del{position:absolute;top:2px;right:2px;width:16px;height:16px;background:rgba(231,76,60,.9);border:none;border-radius:4px;color:#fff;font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+.tabs{display:flex;gap:3px;background:var(--bg3);padding:3px;border-radius:9px;margin-bottom:18px;overflow-x:auto;justify-content:center}.tab{flex-shrink:0;padding:7px 14px;border-radius:7px;font-size:11px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .3s;border:none;background:none;font-family:'Inter',sans-serif;white-space:nowrap}.tab.act{background:var(--accent);color:#fff}.tab:hover:not(.act){color:var(--t1)}.tab .t-badge{position:absolute;top:1px;right:1px;width:14px;height:14px;background:var(--red);border-radius:50%;font-size:8px;display:flex;align-items:center;justify-content:center;color:#fff}
+
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}.modal-ov.show{display:flex}.modal{background:var(--bg2);border:1px solid var(--brd);border-radius:18px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;animation:sUp .3s ease}@keyframes sUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}.modal-h{padding:16px 20px;border-bottom:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center}.modal-h h2{font-size:15px;font-weight:700}.modal-x{width:28px;height:28px;border-radius:7px;background:var(--bg3);border:1px solid var(--brd);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .3s}.modal-x:hover{background:var(--red);color:#fff}.modal-b{padding:20px}.modal-f{padding:12px 20px;border-top:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.det-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.det-item{background:var(--bg3);border:1px solid var(--brd);border-radius:8px;padding:8px}.det-item .dl{font-size:9px;color:var(--t3);text-transform:uppercase;font-weight:600;margin-bottom:2px}.det-item .dv{font-size:13px;font-weight:700}
+.det-desc{background:var(--bg3);border:1px solid var(--brd);border-radius:8px;padding:10px;margin-bottom:10px}.det-desc h4{font-size:11px;font-weight:600;margin-bottom:5px;color:var(--t2)}.det-desc p{font-size:11px;color:var(--t2);line-height:1.4}
+.det-screenshots{display:flex;gap:5px;overflow-x:auto;margin-bottom:10px}.det-screenshots img{height:80px;border-radius:6px;border:1px solid var(--brd)}
+
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--brd);font-size:10px}th{font-weight:600;color:var(--t3);font-size:9px;text-transform:uppercase}tr:hover td{background:rgba(108,92,231,.04)}.status-badge{padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;display:inline-block}.st-approved{background:rgba(0,184,148,.15);color:var(--green)}.st-pending{background:rgba(243,156,18,.15);color:var(--orange)}.st-rejected{background:rgba(231,76,60,.15);color:var(--red)}.st-support{background:rgba(0,206,201,.15);color:var(--cyan)}
+.stat-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:18px}.stat-card{background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:14px;text-align:center}.stat-card .s-num{font-size:22px;font-weight:800;margin-bottom:2px}.stat-card .s-lbl{font-size:9px;color:var(--t3)}.stat-card.purple .s-num{color:var(--accent)}.stat-card.green .s-num{color:var(--green)}.stat-card.orange .s-num{color:var(--orange)}.stat-card.red .s-num{color:var(--red)}.stat-card.cyan .s-num{color:var(--cyan)}
+
+.promo-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.promo-card{background:var(--bg3);border:2px solid var(--brd);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:all .3s}.promo-card:hover{border-color:var(--accent)}.promo-card.sel{border-color:var(--accent);background:rgba(108,92,231,.1)}.promo-card .p-name{font-size:12px;font-weight:700;margin-bottom:2px}.promo-card .p-price{font-size:15px;font-weight:800;color:var(--green);margin-bottom:3px}.promo-card .p-desc{font-size:9px;color:var(--t3)}
+.topup-options{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:12px 0}.topup-opt{background:var(--bg3);border:2px solid var(--brd);border-radius:8px;padding:10px;text-align:center;cursor:pointer;transition:all .3s}.topup-opt:hover{border-color:var(--accent)}.topup-opt.sel{border-color:var(--green);background:rgba(0,184,148,.1)}.topup-opt .amt{font-size:14px;font-weight:800}.topup-opt .bonus{font-size:9px;color:var(--green);margin-top:2px}
+
+.profile-header{display:flex;align-items:center;gap:18px;margin-bottom:24px;flex-wrap:wrap}
+.prof-avatar-wrap{position:relative;cursor:pointer}.prof-avatar-wrap input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.prof-av{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,var(--accent),#a29bfe);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;overflow:hidden}.prof-av img{width:100%;height:100%;object-fit:cover}
+.prof-av-edit{position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff}
+.profile-info h2{font-size:20px;font-weight:800}.profile-info p{color:var(--t3);font-size:12px}
+.profile-stats{display:flex;gap:14px;margin-top:5px}.profile-stats .ps{text-align:center}.profile-stats .ps .pn{font-size:13px;font-weight:700}.profile-stats .ps .pl{font-size:8px;color:var(--t3)}
+
+.chat-wrap{display:grid;grid-template-columns:260px 1fr;height:calc(100vh - 130px);background:var(--bg2);border:1px solid var(--brd);border-radius:14px;overflow:hidden}
+.chat-sidebar{display:flex;flex-direction:column;border-right:1px solid var(--brd)}
+.chat-sidebar-tabs{display:flex;border-bottom:1px solid var(--brd)}.chat-sidebar-tab{flex:1;padding:8px 4px;text-align:center;font-size:9px;font-weight:600;color:var(--t3);cursor:pointer;transition:all .2s;border-bottom:2px solid transparent}.chat-sidebar-tab:hover{color:var(--t1)}.chat-sidebar-tab.act{color:var(--accent);border-bottom-color:var(--accent)}
+.chat-list{flex:1;overflow-y:auto}
+.chat-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid rgba(42,42,62,.5);cursor:pointer;transition:all .15s}.chat-item:hover{background:rgba(108,92,231,.06)}.chat-item.act{background:rgba(108,92,231,.12)}
+.chat-item .c-av{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#a29bfe);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:12px;flex-shrink:0;overflow:hidden}.chat-item .c-av img{width:100%;height:100%;object-fit:cover}.chat-item .c-av.sup{background:linear-gradient(135deg,var(--green),#55efc4)}
+.chat-item .c-info{flex:1;min-width:0}.chat-item .c-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chat-item .c-last{font-size:9px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-item .c-meta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}.chat-item .c-time{font-size:8px;color:var(--t3)}.chat-item .c-unread{width:16px;height:16px;background:var(--accent);border-radius:50%;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.chat-main{display:flex;flex-direction:column;min-width:0}
+.chat-top{padding:8px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.chat-top-left{display:flex;align-items:center;gap:8px}.chat-top-info .ct-name{font-size:12px;font-weight:600}.chat-top-info .ct-status{font-size:9px;color:var(--t3)}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:3px}
+.chat-date-sep{text-align:center;padding:6px 0;font-size:9px;color:var(--t3)}
+.msg{max-width:70%;padding:7px 10px;border-radius:10px;font-size:11px;line-height:1.4;word-wrap:break-word}.msg.mine{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:3px}.msg.other{align-self:flex-start;background:var(--bg3);border:1px solid var(--brd);border-bottom-left-radius:3px}.msg.system{align-self:center;background:var(--bg4);color:var(--t2);font-size:9px;border-radius:6px;padding:5px 12px;max-width:85%;text-align:center;border:1px solid var(--brd)}
+.msg .msg-sender{font-size:9px;font-weight:600;color:var(--cyan);margin-bottom:1px}.msg .msg-time{font-size:8px;opacity:.5;margin-top:1px;display:block;text-align:right}
+.chat-input-wrap{padding:8px 14px;border-top:1px solid var(--brd);display:flex;gap:6px;align-items:center;flex-shrink:0}.chat-input-wrap input{flex:1;background:var(--bg3);border:1px solid var(--brd);border-radius:8px;padding:8px 12px;color:var(--t1);font-size:11px;outline:none;font-family:'Inter',sans-serif}.chat-input-wrap input:focus{border-color:var(--accent)}.chat-input-wrap input::placeholder{color:var(--t3)}
+.chat-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--t3);gap:4px;font-size:12px}
+.chat-order-panel{padding:8px 14px;border-top:1px solid var(--brd);background:var(--bg);flex-shrink:0}.chat-order-panel h4{font-size:10px;font-weight:600;margin-bottom:6px;color:var(--t2)}.cop-btns{display:flex;gap:5px;flex-wrap:wrap}
+
+.order-card{background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:10px}.order-card h4{font-size:12px;font-weight:700;margin-bottom:4px}.order-card .o-meta{display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--t2);margin-bottom:6px}
+.dispute-card{background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:10px}.dispute-card h4{font-size:12px;font-weight:700;margin-bottom:3px}.dispute-card .d-meta{font-size:10px;color:var(--t2);margin-bottom:6px}.dispute-card .d-reason{font-size:11px;color:var(--t2);padding:8px;background:var(--bg);border-radius:6px;margin-bottom:8px;border:1px solid var(--brd)}
+
+.notif{position:fixed;bottom:16px;right:16px;background:var(--bg3);border:1px solid var(--green);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:6px;z-index:300;transform:translateX(150%);transition:transform .4s;box-shadow:0 6px 20px rgba(0,0,0,.4);font-size:12px;font-weight:500;max-width:300px}.notif.show{transform:translateX(0)}.notif.error{border-color:var(--red)}
+
+.loader{display:inline-block;width:16px;height:16px;border:2px solid var(--brd);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+
+.footer{background:var(--bg2);border-top:1px solid var(--brd);padding:20px 28px 12px;margin-top:30px}.footer-inner{max-width:1600px;margin:0 auto}.footer-bot{text-align:center;padding-top:10px}.footer-bot p{color:var(--t3);font-size:9px}
+
+@media(max-width:900px){.nav{display:none}.grid-6{grid-template-columns:repeat(2,1fr)}.hero h1{font-size:26px}.form-row{grid-template-columns:1fr}.det-grid{grid-template-columns:1fr}.promo-cards{grid-template-columns:1fr}.topup-options{grid-template-columns:1fr}.profile-header{flex-direction:column;text-align:center}.chat-wrap{grid-template-columns:1fr;height:auto}.chat-sidebar{max-height:240px}}
+</style>
+</head>
+<body>
+
+<header class="header"><div class="header-inner">
+<a href="#" class="logo" onclick="goPage('home')"><img src="/logo.png" class="logo-img" onerror="this.style.display='none'"><span>LeShop</span></a>
+<nav class="nav">
+<a class="act" data-page="home" onclick="goPage('home')">🏠 Главная</a>
+<a data-page="catalog" onclick="goPage('catalog')">🛍️ Каталог</a>
+<a data-page="sell" onclick="goPage('sell')" id="navSell" style="display:none">💰 Продать</a>
+<a data-page="messages" onclick="goPage('messages')" id="navMsg" style="display:none">💬 Чаты</a>
+<span class="nav-sep"></span>
+<a data-page="support" onclick="goPage('support')" id="navSup" style="display:none">🛡️ Саппорт</a>
+<a data-page="admin" onclick="goPage('admin')" id="navAdm" style="display:none">⚙️ Админ</a>
+<span class="online-dot" id="onlineBox" style="display:none"><span class="dot"></span><span id="onlineCnt">1</span></span>
+</nav>
+<div class="h-right">
+<div id="authBtns"><button class="btn btn-p" onclick="openModal('authModal')">Войти</button></div>
+<div id="userArea" style="display:none" onclick="goPage('profile')">
+<div class="h-profile"><div class="h-avatar" id="hAv">U</div><div class="h-uinfo"><span class="h-uname" id="hName">User</span><span class="h-ubal"><span class="avail" id="hBal">0₽</span><span class="frozen" id="hFroz" style="display:none"></span></span></div></div>
+</div></div>
+</div></header>
+
+<div class="page active" id="page-home">
+<div class="hero">
+<h1>Купи аккаунт<br><span class="gr">быстро и безопасно</span></h1>
+<p>Маркетплейс аккаунтов World of Tanks и WoT Blitz</p>
+<div><button class="btn btn-p btn-lg" onclick="goPage('catalog')">🛍️ Каталог</button><button class="btn btn-s btn-lg" style="margin-left:8px" onclick="goPage('sell')">💰 Продать</button></div>
+<div class="hero-stats"><div class="hero-stat"><div class="num" id="hS1">0</div><div class="lbl">Аккаунтов</div></div><div class="hero-stat"><div class="num" id="hS2">0</div><div class="lbl">Пользователей</div></div></div>
+</div>
+<div class="centered-section" style="margin-top:30px"><h2 class="sec-t" style="margin-bottom:16px">🛡️ Почему LeShop?</h2>
+<div class="grid-4" style="max-width:1000px;margin:0 auto">
+<div class="card card-p" style="text-align:center"><div style="font-size:28px;margin-bottom:6px">🔒</div><h4 style="font-size:12px;margin-bottom:3px">Гарант</h4><p style="font-size:10px;color:var(--t3)">Деньги после подтверждения</p></div>
+<div class="card card-p" style="text-align:center"><div style="font-size:28px;margin-bottom:6px">💬</div><h4 style="font-size:12px;margin-bottom:3px">Чат</h4><p style="font-size:10px;color:var(--t3)">Безопасная передача данных</p></div>
+<div class="card card-p" style="text-align:center"><div style="font-size:28px;margin-bottom:6px">❄️</div><h4 style="font-size:12px;margin-bottom:3px">Защита</h4><p style="font-size:10px;color:var(--t3)">Замороженный баланс</p></div>
+<div class="card card-p" style="text-align:center"><div style="font-size:28px;margin-bottom:6px">🛡️</div><h4 style="font-size:12px;margin-bottom:3px">Поддержка</h4><p style="font-size:10px;color:var(--t3)">Решение споров 24/7</p></div>
+</div></div></div>
+
+<div class="page" id="page-catalog">
+<div class="sec-h"><h2 class="sec-t">🛍️ Каталог</h2><span style="color:var(--t3);font-size:11px" id="resCount"></span></div>
+<div class="filters">
+<span class="f-label">Игра:</span><div class="f-chips"><button class="f-chip act" onclick="setF('game','all',this)">Все</button><button class="f-chip" onclick="setF('game','wot',this)">WoT</button><button class="f-chip" onclick="setF('game','wotb',this)">Blitz</button></div>
+<div class="f-div"></div><span class="f-label">Доступ:</span><div class="f-chips"><button class="f-chip act" onclick="setF('access','all',this)">Все</button><button class="f-chip" onclick="setF('access','full',this)">Полный</button><button class="f-chip" onclick="setF('access','partial',this)">Частичный</button></div>
+<div class="f-div"></div><span class="f-label">Сервер:</span><select class="inp" style="width:70px;padding:5px 8px;font-size:10px" id="fServer" onchange="loadCatalog()"><option value="all">Все</option><option value="RU">RU</option><option value="EU">EU</option><option value="NA">NA</option><option value="ASIA">ASIA</option></select>
+<div class="f-div"></div><span class="f-label">Цена:</span><input class="inp" type="number" placeholder="От" id="fPF" oninput="loadCatalog()" style="width:60px;padding:5px;font-size:10px"><span style="color:var(--t3)">—</span><input class="inp" type="number" placeholder="До" id="fPT" oninput="loadCatalog()" style="width:60px;padding:5px;font-size:10px">
+<div class="f-div"></div><select class="inp" style="width:90px;padding:5px 8px;font-size:10px" id="fSort" onchange="loadCatalog()"><option value="new">Новые</option><option value="asc">Дешевле</option><option value="desc">Дороже</option></select>
+</div>
+<div class="grid-6" id="catGrid"><div class="loader"></div></div>
+</div>
+
+<div class="page" id="page-sell">
+<div class="sec-h"><h2 class="sec-t">💰 Продать аккаунт</h2></div>
+<div style="max-width:640px">
+<div class="card card-p" style="margin-bottom:14px"><h3 style="font-size:13px;margin-bottom:10px">📸 Скриншоты</h3><div class="upload-area"><input type="file" multiple accept="image/*" id="imgInput" onchange="previewImgs(event)"><div class="ic">📤</div><div class="tx">Нажмите или перетащите</div></div><div class="previews" id="previews"></div></div>
+<div class="card card-p" style="margin-bottom:14px"><h3 style="font-size:13px;margin-bottom:10px">🎮 Информация</h3>
+<div class="form-row"><div class="form-g"><label>Игра *</label><select class="inp" id="sGame"><option value="wot">World of Tanks</option><option value="wotb">WoT Blitz</option></select></div><div class="form-g"><label>Сервер *</label><select class="inp" id="sServer"><option value="RU">RU</option><option value="EU">EU</option><option value="NA">NA</option><option value="ASIA">ASIA</option></select></div></div>
+<div class="form-g"><label>Доступ *</label><select class="inp" id="sAccess"><option value="full">🔓 Полный</option><option value="partial">🔒 Частичный</option></select></div>
+<div class="form-g"><label>Название *</label><input class="inp" id="sTitle" placeholder="WoT аккаунт с Chieftain..."></div>
+<div class="form-row"><div class="form-g"><label>Бои</label><input class="inp" type="number" id="sBattles" placeholder="15000"></div><div class="form-g"><label>Винрейт</label><input class="inp" type="number" step="0.1" id="sWR" placeholder="54.5"></div></div>
+<div class="form-row"><div class="form-g"><label>Танков X</label><input class="inp" type="number" id="sT10" placeholder="5"></div><div class="form-g"><label>Прем.</label><input class="inp" type="number" id="sPrem" placeholder="8"></div></div>
+<div class="form-g"><label>Описание</label><textarea class="inp" id="sDesc" placeholder="Описание..."></textarea></div>
+</div>
+<div class="card card-p" style="margin-bottom:14px"><h3 style="font-size:13px;margin-bottom:10px">💵 Цена</h3><div class="form-g"><label>Цена (₽) *</label><input class="inp" type="number" id="sPrice" placeholder="5000"></div></div>
+<div class="card card-p" style="margin-bottom:14px"><h3 style="font-size:13px;margin-bottom:3px">📢 Тариф</h3>
+<div class="promo-cards"><div class="promo-card sel" onclick="selPr('free',this)"><div class="p-name">📋 Бесплатное</div><div class="p-price">0₽</div></div><div class="promo-card" onclick="selPr('premium',this)"><div class="p-name">⭐ Премиум</div><div class="p-price" id="ppDisp">—₽</div></div></div>
+</div>
+<button class="btn btn-g btn-full btn-lg" onclick="submitListing()" id="sellBtn">📤 Разместить</button>
+</div></div>
+
+<div class="page" id="page-profile">
+<div class="profile-header">
+<div class="prof-avatar-wrap"><div class="prof-av" id="pAv">U</div><div class="prof-av-edit">📷</div><input type="file" accept="image/*" onchange="uploadAvatar(event)"></div>
+<div class="profile-info"><h2 id="pName">User</h2><p id="pEmail">email</p>
+<div class="profile-stats">
+<div class="ps"><div class="pn" style="color:var(--green)" id="pBal">0₽</div><div class="pl">Доступно</div></div>
+<div class="ps"><div class="pn" style="color:var(--orange)" id="pFroz">0₽</div><div class="pl">Заморожено</div></div>
+<div class="ps"><div class="pn" style="color:var(--accent)" id="pList">0</div><div class="pl">Объявлений</div></div>
+</div></div>
+<div style="margin-left:auto;display:flex;gap:5px"><button class="btn btn-p btn-sm" onclick="openModal('topupModal')">💎 Пополнить</button><button class="btn btn-r btn-sm" onclick="doLogout()">Выйти</button></div>
+</div>
+<div class="tabs">
+<button class="tab act" onclick="profTab('listings',this)">📦 Активные</button>
+<button class="tab" onclick="profTab('purchases',this)">🛒 Покупки</button>
+<button class="tab" onclick="profTab('tx',this)">💳 Транзакции</button>
+<button class="tab" onclick="profTab('settings',this)">⚙️ Настройки</button>
+</div>
+<div id="pContent"></div>
+</div>
+
+<div class="page" id="page-messages">
+<div class="chat-wrap">
+<div class="chat-sidebar">
+<div class="chat-sidebar-tabs">
+<div class="chat-sidebar-tab act" onclick="chatFilter('all',this)">📨</div>
+<div class="chat-sidebar-tab" onclick="chatFilter('orders',this)">🛒</div>
+<div class="chat-sidebar-tab" onclick="chatFilter('sales',this)">💰</div>
+<div class="chat-sidebar-tab" onclick="chatFilter('support',this)">🛡️</div>
+</div>
+<div class="chat-list" id="chatList"></div>
+</div>
+<div class="chat-main" id="chatMain"><div class="chat-empty">💬<p>Выберите чат</p></div></div>
+</div></div>
+
+<div class="page" id="page-support"><div class="centered-section">
+<div class="sec-h" style="justify-content:center"><h2 class="sec-t">🛡️ Саппорт</h2></div>
+<div class="stat-cards" id="supStats"></div>
+<div class="tabs"><button class="tab act" onclick="supTab('mod',this)">📋 Модерация</button><button class="tab" onclick="supTab('disputes',this)">⚖️ Споры</button><button class="tab" onclick="supTab('chats',this)">💬 Чаты</button></div>
+<div id="supContent"></div>
+</div></div>
+
+<div class="page" id="page-admin"><div class="centered-section">
+<div class="sec-h" style="justify-content:center"><h2 class="sec-t">⚙️ Админка</h2></div>
+<div class="stat-cards" id="aStats"></div>
+<div class="tabs"><button class="tab act" onclick="admTab('users',this)">👥 Юзеры</button><button class="tab" onclick="admTab('all',this)">📦 Объявления</button><button class="tab" onclick="admTab('tx',this)">💳 Транзакции</button></div>
+<div id="aContent"></div>
+</div></div>
+
+<!-- MODALS -->
+<div class="modal-ov" id="authModal"><div class="modal" style="max-width:380px"><div class="modal-h"><h2>👋 Добро пожаловать</h2><button class="modal-x" onclick="closeModal('authModal')">✕</button></div><div class="modal-b">
+<div class="tabs" style="margin-bottom:14px"><button class="tab act" onclick="authTab('login',this)">Вход</button><button class="tab" onclick="authTab('register',this)">Регистрация</button></div>
+<div id="authLogin"><div class="form-g"><label>Email</label><input class="inp" type="email" id="lEmail" placeholder="your@email.com"></div><div class="form-g"><label>Пароль</label><input class="inp" type="password" id="lPass" placeholder="Пароль"></div><button class="btn btn-p btn-full" onclick="doLogin()">Войти</button></div>
+<div id="authRegister" style="display:none"><div class="form-g"><label>Никнейм</label><input class="inp" id="rName" placeholder="Никнейм"></div><div class="form-g"><label>Email</label><input class="inp" type="email" id="rEmail" placeholder="your@email.com"></div><div class="form-g"><label>Пароль</label><input class="inp" type="password" id="rPass" placeholder="Мин. 6"></div><div class="form-g"><label>Подтверждение</label><input class="inp" type="password" id="rPass2" placeholder="Повторите"></div><button class="btn btn-p btn-full" onclick="doRegister()">Создать</button></div>
+</div></div></div>
+
+<div class="modal-ov" id="topupModal"><div class="modal" style="max-width:380px"><div class="modal-h"><h2>💎 Пополнить</h2><button class="modal-x" onclick="closeModal('topupModal')">✕</button></div><div class="modal-b">
+<p style="font-size:11px;color:var(--t2);margin-bottom:10px">Баланс: <strong id="tuBal">0₽</strong></p>
+<div class="topup-options"><div class="topup-opt" onclick="selTU(100,this)"><div class="amt">100₽</div></div><div class="topup-opt" onclick="selTU(500,this)"><div class="amt">500₽</div><div class="bonus">+25</div></div><div class="topup-opt sel" onclick="selTU(1000,this)"><div class="amt">1000₽</div><div class="bonus">+100</div></div><div class="topup-opt" onclick="selTU(2000,this)"><div class="amt">2000₽</div><div class="bonus">+300</div></div><div class="topup-opt" onclick="selTU(5000,this)"><div class="amt">5000₽</div><div class="bonus">+1000</div></div><div class="topup-opt" onclick="selTU(10000,this)"><div class="amt">10000₽</div><div class="bonus">+2500</div></div></div>
+<div class="form-g"><label>Своя сумма</label><input class="inp" type="number" id="tuCustom" placeholder="Сумма" oninput="customTU()"></div>
+<button class="btn btn-g btn-full btn-lg" onclick="doTopup()">💳 <span id="tuAmt">1000₽</span></button>
+</div></div></div>
+
+<div class="modal-ov" id="detailModal"><div class="modal" style="max-width:560px"><div class="modal-h"><h2 id="dTitle"></h2><button class="modal-x" onclick="closeModal('detailModal')">✕</button></div><div class="modal-b" id="dBody"></div><div class="modal-f"><div><div style="font-size:20px;font-weight:800;color:var(--green)" id="dPrice"></div><div style="font-size:10px;color:var(--t3);text-decoration:line-through" id="dOld"></div></div><button class="btn btn-g btn-lg" id="dBuyBtn">💳 Купить</button></div></div></div>
+
+<div class="modal-ov" id="checkoutModal"><div class="modal" style="max-width:380px"><div class="modal-h"><h2>💳 Оплата</h2><button class="modal-x" onclick="closeModal('checkoutModal')">✕</button></div><div class="modal-b" id="coBody"></div></div></div>
+
+<div class="notif" id="notif"><span id="nText"></span></div>
+
+<footer class="footer"><div class="footer-inner"><div class="footer-bot"><p>© 2024 LeShop</p></div></div></footer>
+
+<script>
+// ==================== API HELPERS ====================
+const API = '';
+let token = localStorage.getItem('ls_token');
+let user = null;
+let socket = null;
+let curChat = null;
+let chatFType = 'all';
+let selPromo = 'free';
+let tuVal = 1000;
+let fil = { game: 'all', access: 'all' };
+let imgFiles = [];
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(API + path, { ...opts, headers: { ...headers, ...opts.headers } });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Ошибка');
+  return data;
+}
+
+async function apiForm(path, formData) {
+  const headers = {};
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(API + path, { method: 'POST', headers, body: formData });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Ошибка');
+  return data;
+}
+
+function notify(t, type) {
+  const n = document.getElementById('notif');
+  document.getElementById('nText').textContent = t;
+  n.classList.toggle('error', type === 'error');
+  n.style.borderColor = type === 'error' ? 'var(--red)' : 'var(--green)';
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 3000);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('show') }
+function closeModal(id) { document.getElementById(id).classList.remove('show') }
+document.querySelectorAll('.modal-ov').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('show') }));
+
+// ==================== SOCKET.IO ====================
+function connectSocket() {
+  if (socket) socket.disconnect();
+  socket = io({ auth: { token } });
+  socket.on('new_message', msg => {
+    if (curChat === msg.chatId) loadChat(curChat);
+    loadChatList();
+    playSound();
+  });
+  socket.on('new_order', () => notify('📦 Новый заказ!'));
+  socket.on('order_created', d => { curChat = null; goPage('messages') });
+  socket.on('dispute_resolved', () => { if (curChat) loadChat(curChat) });
+}
+
+function playSound() {
+  try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = 800; o.type = 'sine'; g.gain.value = .08; o.start(); o.stop(ctx.currentTime + .08) } catch (e) {}
+}
+
+// ==================== AUTH ====================
+async function loadUser() {
+  if (!token) { user = null; updateUI(); return }
+  try { user = await api('/api/auth/me'); updateUI(); connectSocket() }
+  catch (e) { token = null; user = null; localStorage.removeItem('ls_token'); updateUI() }
+}
+
+function updateUI() {
+  const l = !!user;
+  document.getElementById('authBtns').style.display = l ? 'none' : 'block';
+  document.getElementById('userArea').style.display = l ? 'block' : 'none';
+  ['navSell', 'navMsg'].forEach(id => document.getElementById(id).style.display = l ? '' : 'none');
+  document.getElementById('navSup').style.display = (l && ['admin', 'support'].includes(user?.role)) ? '' : 'none';
+  document.getElementById('navAdm').style.display = (l && user?.role === 'admin') ? '' : 'none';
+  document.getElementById('onlineBox').style.display = (l && ['admin', 'support'].includes(user?.role)) ? 'inline-flex' : 'none';
+  if (l) {
+    document.getElementById('hName').textContent = user.name;
+    document.getElementById('hBal').textContent = user.balance?.toLocaleString() + '₽';
+    const hf = document.getElementById('hFroz');
+    hf.style.display = user.frozen_balance > 0 ? 'inline' : 'none';
+    hf.textContent = ' ❄️' + (user.frozen_balance || 0).toLocaleString();
+    const hav = document.getElementById('hAv');
+    hav.innerHTML = user.avatar ? `<img src="${user.avatar}">` : (user.name[0] || 'U').toUpperCase();
+  }
+}
+
+function authTab(t, b) { document.querySelectorAll('#authModal .tab').forEach(x => x.classList.remove('act')); b.classList.add('act'); document.getElementById('authLogin').style.display = t === 'login' ? 'block' : 'none'; document.getElementById('authRegister').style.display = t === 'register' ? 'block' : 'none' }
+
+async function doLogin() {
+  try {
+    const d = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ email: document.getElementById('lEmail').value, password: document.getElementById('lPass').value }) });
+    token = d.token; user = d.user; localStorage.setItem('ls_token', token);
+    closeModal('authModal'); updateUI(); connectSocket(); notify('Добро пожаловать, ' + user.name + '!');
+  } catch (e) { notify(e.message, 'error') }
+}
+
+async function doRegister() {
+  const pass = document.getElementById('rPass').value;
+  if (pass !== document.getElementById('rPass2').value) { notify('Пароли ≠', 'error'); return }
+  try {
+    const d = await api('/api/auth/register', { method: 'POST', body: JSON.stringify({ name: document.getElementById('rName').value, email: document.getElementById('rEmail').value, password: pass }) });
+    token = d.token; user = d.user; localStorage.setItem('ls_token', token);
+    closeModal('authModal'); updateUI(); connectSocket(); notify('Аккаунт создан!');
+  } catch (e) { notify(e.message, 'error') }
+}
+
+function doLogout() { token = null; user = null; localStorage.removeItem('ls_token'); if (socket) socket.disconnect(); goPage('home'); updateUI(); notify('Вы вышли') }
+
+async function uploadAvatar(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const fd = new FormData(); fd.append('avatar', file);
+  try { const d = await apiForm('/api/auth/avatar', fd); user.avatar = d.avatar; updateUI(); renderProf(); notify('Аватар обновлён!') }
+  catch (e) { notify(e.message, 'error') }
+  e.target.value = '';
+}
+
+// ==================== NAVIGATION ====================
+function goPage(p) {
+  if (['sell', 'profile', 'messages'].includes(p) && !user) { openModal('authModal'); return }
+  if (p === 'admin' && user?.role !== 'admin') return;
+  if (p === 'support' && !['admin', 'support'].includes(user?.role)) return;
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('act', a.dataset.page === p));
+  if (p === 'catalog') loadCatalog();
+  if (p === 'profile') renderProf();
+  if (p === 'messages') { loadChatList(); if (curChat) loadChat(curChat) }
+  if (p === 'support') loadSupport();
+  if (p === 'admin') loadAdmin();
+  window.scrollTo(0, 0);
+}
+
+// ==================== CATALOG ====================
+async function loadCatalog() {
+  const params = new URLSearchParams();
+  if (fil.game !== 'all') params.set('game', fil.game);
+  if (fil.access !== 'all') params.set('access', fil.access);
+  const sv = document.getElementById('fServer').value;
+  if (sv !== 'all') params.set('server', sv);
+  const pf = document.getElementById('fPF').value;
+  const pt = document.getElementById('fPT').value;
+  if (pf) params.set('price_from', pf);
+  if (pt) params.set('price_to', pt);
+  params.set('sort', document.getElementById('fSort').value);
+
+  try {
+    const list = await api('/api/listings?' + params);
+    document.getElementById('resCount').textContent = list.length + ' акк.';
+    const g = document.getElementById('catGrid');
+    if (!list.length) { g.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--t3)">Нет объявлений</div>'; return }
+    g.innerHTML = list.map(l => `
+    <div class="l-card ${l.promo === 'premium' ? 'promoted' : ''}" onclick="openDet(${l.id})">
+      <div class="l-img">${l.images?.length ? `<img src="${l.images[0]}">` : `<div class="no-img">${l.game === 'wot' ? '🎖️' : '📱'}</div>`}<div class="l-badges">${l.discount > 0 ? `<span class="l-badge disc">-${l.discount}%</span>` : ''}${l.promo === 'premium' ? '<span class="l-badge promo">⭐</span>' : ''}<span class="l-badge ${l.access_type === 'full' ? 'af' : 'ap'}">${l.access_type === 'full' ? '🔓' : '🔒'}</span></div></div>
+      <div class="l-seller"><div class="av">${l.seller_avatar ? `<img src="${l.seller_avatar}">` : (l.seller_name?.[0] || '?')}</div><div class="nm">${l.seller_name || '?'}</div></div>
+      <div class="l-body"><span class="l-game ${l.game}">${l.game === 'wot' ? 'WoT' : 'Blitz'}</span><div class="l-title">${l.title}</div><div class="l-specs"><div class="l-spec"><div class="sl">Бои</div><div class="sv">${(l.battles || 0).toLocaleString()}</div></div><div class="l-spec"><div class="sl">WR</div><div class="sv">${l.winrate || 0}%</div></div><div class="l-spec"><div class="sl">X</div><div class="sv">${l.tier10 || 0}</div></div><div class="l-spec"><div class="sl">Пр</div><div class="sv">${l.premiums || 0}</div></div></div></div>
+      <div class="l-foot"><div><span class="l-price">${l.final_price?.toLocaleString()}₽</span>${l.discount > 0 ? `<span class="l-old">${l.price?.toLocaleString()}</span>` : ''}</div><button class="btn btn-g btn-sm" onclick="event.stopPropagation();buyNow(${l.id})">💳</button></div>
+    </div>`).join('');
+  } catch (e) { document.getElementById('catGrid').innerHTML = '<p style="color:var(--red)">Ошибка загрузки</p>' }
+}
+
+function setF(t, v, b) { fil[t] = v; b.parentElement.querySelectorAll('.f-chip').forEach(c => c.classList.remove('act')); b.classList.add('act'); loadCatalog() }
+
+// ==================== DETAIL ====================
+async function openDet(id) {
+  try {
+    const l = await api('/api/listings/' + id);
+    document.getElementById('dTitle').textContent = l.title;
+    document.getElementById('dPrice').textContent = l.final_price?.toLocaleString() + '₽';
+    document.getElementById('dOld').textContent = l.discount > 0 ? l.price?.toLocaleString() + '₽' : '';
+    document.getElementById('dBuyBtn').onclick = () => { closeModal('detailModal'); buyNow(id) };
+    let imgs = '';
+    if (l.images?.length) imgs = `<div class="det-screenshots">${l.images.map(i => `<img src="${i}">`).join('')}</div>`;
+    document.getElementById('dBody').innerHTML = `${imgs}<div class="det-grid"><div class="det-item"><div class="dl">Игра</div><div class="dv">${l.game === 'wot' ? 'WoT' : 'Blitz'}</div></div><div class="det-item"><div class="dl">Сервер</div><div class="dv">${l.server}</div></div><div class="det-item"><div class="dl">Доступ</div><div class="dv">${l.access_type === 'full' ? '🔓 Полный' : '🔒 Частичный'}</div></div><div class="det-item"><div class="dl">Бои</div><div class="dv">${(l.battles || 0).toLocaleString()}</div></div><div class="det-item"><div class="dl">WR</div><div class="dv">${l.winrate || 0}%</div></div><div class="det-item"><div class="dl">Прем.</div><div class="dv">${l.premiums || 0}</div></div></div>${l.description ? `<div class="det-desc"><h4>📝</h4><p>${l.description}</p></div>` : ''}`;
+    openModal('detailModal');
+  } catch (e) { notify(e.message, 'error') }
+}
+
+// ==================== BUY ====================
+async function buyNow(id) {
+  if (!user) { openModal('authModal'); return }
+  try {
+    const l = await api('/api/listings/' + id);
+    document.getElementById('coBody').innerHTML = `<div style="text-align:center;margin-bottom:14px"><div style="font-size:36px;margin-bottom:6px">💳</div><p style="font-size:12px;font-weight:600">${l.title}</p><div style="font-size:26px;font-weight:800;color:var(--green);margin:4px 0">${l.final_price?.toLocaleString()}₽</div><p style="font-size:11px;color:var(--t3)">Баланс: ${user.balance?.toLocaleString()}₽</p></div>${user.balance >= l.final_price ? `<button class="btn btn-g btn-full btn-lg" onclick="doPay(${id})">Оплатить</button>` : `<p style="color:var(--red);text-align:center;margin-bottom:8px">Недостаточно</p><button class="btn btn-p btn-full" onclick="closeModal('checkoutModal');openModal('topupModal')">Пополнить</button>`}`;
+    openModal('checkoutModal');
+  } catch (e) { notify(e.message, 'error') }
+}
+
+async function doPay(listingId) {
+  try {
+    const d = await api('/api/orders/buy/' + listingId, { method: 'POST' });
+    await loadUser(); closeModal('checkoutModal'); notify('🎉 Оплачено!');
+    curChat = d.chatId; goPage('messages');
+  } catch (e) { notify(e.message, 'error') }
+}
+
+// ==================== SELL ====================
+function previewImgs(e) {
+  const files = Array.from(e.target.files);
+  imgFiles = imgFiles.concat(files).slice(0, 6);
+  const prev = document.getElementById('previews');
+  prev.innerHTML = imgFiles.map((f, i) => {
+    const url = URL.createObjectURL(f);
+    return `<div class="preview-item"><img src="${url}"><button class="del" onclick="imgFiles.splice(${i},1);previewImgs({target:{files:[]}})">✕</button></div>`;
+  }).join('');
+}
+
+function selPr(t, el) { selPromo = t; document.querySelectorAll('.promo-card').forEach(c => c.classList.remove('sel')); el.classList.add('sel') }
+
+async function submitListing() {
+  if (!user) { openModal('authModal'); return }
+  const title = document.getElementById('sTitle').value.trim();
+  const price = parseInt(document.getElementById('sPrice').value);
+  if (!title) { notify('Название', 'error'); return }
+  if (!price) { notify('Цена', 'error'); return }
+
+  try {
+    const d = await api('/api/listings', { method: 'POST', body: JSON.stringify({
+      game: document.getElementById('sGame').value, server: document.getElementById('sServer').value,
+      access_type: document.getElementById('sAccess').value, title, price, promo: selPromo,
+      battles: parseInt(document.getElementById('sBattles').value) || 0,
+      winrate: parseFloat(document.getElementById('sWR').value) || 0,
+      tier10: parseInt(document.getElementById('sT10').value) || 0,
+      premiums: parseInt(document.getElementById('sPrem').value) || 0,
+      description: document.getElementById('sDesc').value
+    })});
+
+    // Upload images
+    if (imgFiles.length && d.id) {
+      const fd = new FormData();
+      imgFiles.forEach(f => fd.append('images', f));
+      await apiForm('/api/listings/' + d.id + '/images', fd);
+    }
+
+    await loadUser();
+    notify('📤 На модерации!');
+    ['sTitle', 'sBattles', 'sWR', 'sT10', 'sPrem', 'sDesc', 'sPrice'].forEach(id => document.getElementById(id).value = '');
+    imgFiles = []; document.getElementById('previews').innerHTML = '';
+  } catch (e) { notify(e.message, 'error') }
+}
+
+// ==================== TOPUP ====================
+function selTU(v, el) { tuVal = v; document.querySelectorAll('.topup-opt').forEach(o => o.classList.remove('sel')); el.classList.add('sel'); document.getElementById('tuCustom').value = ''; document.getElementById('tuAmt').textContent = v.toLocaleString() + '₽' }
+function customTU() { const v = parseInt(document.getElementById('tuCustom').value); if (v > 0) { tuVal = v; document.querySelectorAll('.topup-opt').forEach(o => o.classList.remove('sel')); document.getElementById('tuAmt').textContent = v.toLocaleString() + '₽' }}
+
+async function doTopup() {
+  try {
+    const d = await api('/api/users/topup', { method: 'POST', body: JSON.stringify({ amount: tuVal }) });
+    await loadUser(); closeModal('topupModal');
+    notify('💎 +' + (tuVal + (d.bonus || 0)).toLocaleString() + '₽');
+  } catch (e) { notify(e.message, 'error') }
+}
+
+// ==================== PROFILE ====================
+async function renderProf() {
+  if (!user) return;
+  await loadUser();
+  document.getElementById('pAv').innerHTML = user.avatar ? `<img src="${user.avatar}">` : (user.name[0] || 'U').toUpperCase();
+  document.getElementById('pName').textContent = user.name;
+  document.getElementById('pEmail').textContent = user.email;
+  document.getElementById('pBal').textContent = user.balance?.toLocaleString() + '₽';
+  document.getElementById('pFroz').textContent = (user.frozen_balance || 0).toLocaleString() + '₽';
+  try {
+    const stats = await api('/api/users/stats');
+    document.getElementById('pList').textContent = stats.listings;
+  } catch (e) {}
+  profTab('listings', document.querySelector('#page-profile .tab.act'));
+}
+
+async function profTab(tab, btn) {
+  document.querySelectorAll('#page-profile .tab').forEach(t => t.classList.remove('act'));
+  if (btn) btn.classList.add('act');
+  const c = document.getElementById('pContent');
+
+  if (tab === 'listings') {
+    try {
+      const list = await api('/api/listings/my/active');
+      if (!list.length) { c.innerHTML = '<div class="card card-p" style="text-align:center;color:var(--t3)">Нет<br><br><button class="btn btn-p btn-sm" onclick="goPage(\'sell\')">Создать</button></div>'; return }
+      c.innerHTML = '<div class="table-wrap"><table><thead><tr><th>Название</th><th>Цена</th><th>Скидка</th><th>Тариф</th><th>Статус</th></tr></thead><tbody>' +
+        list.map(l => `<tr><td style="font-weight:600;font-size:10px">${l.title}</td><td style="color:var(--green)">${l.final_price?.toLocaleString()}₽</td><td>${l.discount > 0 ? `<span style="color:var(--red)">-${l.discount}%</span>` : '—'}</td><td>${l.promo === 'premium' ? '⭐' : '—'}</td><td><span class="status-badge st-${l.status}">${l.status === 'approved' ? 'Актив' : l.status === 'pending' ? 'Мод.' : 'Откл.'}</span></td></tr>`).join('') + '</tbody></table></div>';
+    } catch (e) { c.innerHTML = '<p style="color:var(--red)">' + e.message + '</p>' }
+  }
+  else if (tab === 'purchases') {
+    try {
+      const orders = await api('/api/orders/my/purchases');
+      if (!orders.length) { c.innerHTML = '<div class="card card-p" style="text-align:center;color:var(--t3)">Нет покупок</div>'; return }
+      c.innerHTML = orders.map(o => {
+        const st = o.status === 'active' ? (o.disputed ? '⚠️ Спор' : '⏳ Ожидает') : o.status === 'confirmed' ? '❄️ Заморожено' : o.status === 'completed' ? '✅ Готово' : '💰 Возврат';
+        return `<div class="order-card"><h4>${o.title || '#' + o.listing_id}</h4><div class="o-meta"><span>💰 ${o.amount?.toLocaleString()}₽</span><span>${st}</span></div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">${o.chat_id ? `<button class="btn btn-s btn-sm" onclick="curChat=${o.chat_id};goPage('messages')">💬</button>` : ''}
+        ${o.status === 'active' ? `<button class="btn btn-g btn-sm" onclick="confirmOrder(${o.id})">✅ Подтвердить</button>${!o.disputed ? `<button class="btn btn-r btn-sm" onclick="openDispute(${o.id})">⚠️</button>` : ''}` : ''}</div></div>`;
+      }).join('');
+    } catch (e) { c.innerHTML = '<p style="color:var(--red)">' + e.message + '</p>' }
+  }
+  else if (tab === 'tx') {
+    try {
+      const txs = await api('/api/transactions');
+      c.innerHTML = txs.length ? '<div class="table-wrap"><table><thead><tr><th>Описание</th><th>Сумма</th><th>Дата</th></tr></thead><tbody>' +
+        txs.map(t => `<tr><td style="font-size:10px">${t.description}</td><td style="color:${t.amount >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600">${t.amount >= 0 ? '+' : ''}${t.amount?.toLocaleString()}₽</td><td style="color:var(--t3);font-size:9px">${new Date(t.created_at).toLocaleString()}</td></tr>`).join('') + '</tbody></table></div>' : '<div style="color:var(--t3);text-align:center;padding:16px">Нет</div>';
+    } catch (e) {}
+  }
+  else if (tab === 'settings') {
+    c.innerHTML = `<div class="card card-p" style="max-width:400px"><h3 style="font-size:13px;margin-bottom:12px">⚙️ Настройки</h3><div class="form-g"><label>Новый пароль</label><input class="inp" type="password" id="setP" placeholder="Оставьте пустым"></div><button class="btn btn-p btn-sm" onclick="saveSettings()">💾</button></div>`;
+  }
+}
+
+async function saveSettings() {
+  const p = document.getElementById('setP').value;
+  if (p && p.length >= 6) {
+    try { await api('/api/auth/password', { method: 'PUT', body: JSON.stringify({ password: p }) }); notify('✅ Сохранено') }
+    catch (e) { notify(e.message, 'error') }
+  }
+}
+
+async function confirmOrder(id) {
+  if (!confirm('Подтвердить получение?')) return;
+  try { await api('/api/orders/' + id + '/confirm', { method: 'POST' }); await loadUser(); renderProf(); notify('✅ Подтверждено!') }
+  catch (e) { notify(e.message, 'error') }
+}
+
+async function openDispute(orderId) {
+  const reason = prompt('Опишите проблему:');
+  if (!reason) return;
+  try { await api('/api/disputes', { method: 'POST', body: JSON.stringify({ order_id: orderId, reason }) }); notify('⚠️ Жалоба отправлена'); renderProf() }
+  catch (e) { notify(e.message, 'error') }
+}
+
+// ==================== CHATS ====================
+async function loadChatList() {
+  if (!user) return;
+  try {
+    const chats = await api('/api/chats?filter=' + chatFType);
+    const cl = document.getElementById('chatList');
+    if (!chats.length) { cl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--t3);font-size:11px">Нет чатов</div>'; return }
+    cl.innerHTML = chats.map(c => {
+      const lm = c.last_message;
+      const name = c.type === 'support' ? '🛡️ Поддержка' : (c.other_user?.name || 'Чат') + (c.order ? ' #' + c.order.id : '');
+      const avHtml = c.type === 'support' ? '<div class="c-av sup">🛡️</div>' : (c.other_user?.avatar ? `<div class="c-av"><img src="${c.other_user.avatar}"></div>` : `<div class="c-av">${c.other_user?.name?.[0] || '?'}</div>`);
+      const time = lm ? new Date(lm.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      return `<div class="chat-item ${curChat === c.id ? 'act' : ''}" onclick="curChat=${c.id};loadChat(${c.id})">${avHtml}<div class="c-info"><div class="c-name">${name}</div><div class="c-last">${lm ? lm.text.slice(0, 30) : '...'}</div></div><div class="c-meta"><div class="c-time">${time}</div>${c.unread > 0 ? `<div class="c-unread">${c.unread}</div>` : ''}</div></div>`;
+    }).join('');
+  } catch (e) {}
+}
+
+function chatFilter(t, el) { chatFType = t; document.querySelectorAll('.chat-sidebar-tab').forEach(x => x.classList.remove('act')); el.classList.add('act'); loadChatList() }
+
+async function loadChat(chatId) {
+  curChat = chatId;
+  if (socket) socket.emit('join_chat', chatId);
+  try {
+    const d = await api('/api/chats/' + chatId + '/messages');
+    const msgs = d.messages;
+    const order = d.order;
+    const chat = d.chat;
+
+    let html = '', lastD = '';
+    msgs.forEach(m => {
+      const dt = new Date(m.created_at).toLocaleDateString('ru', { day: 'numeric', month: 'long' });
+      if (dt !== lastD) { html += `<div class="chat-date-sep">${dt}</div>`; lastD = dt }
+      if (m.is_system || m.from_id === 0) {
+        if (m.is_system) html += `<div class="msg system">${m.text.replace(/\n/g, '<br>')}</div>`;
+        else html += `<div class="msg other"><div class="msg-sender">Поддержка</div>${m.text.replace(/\n/g, '<br>')}<span class="msg-time">${new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>`;
+      } else {
+        const mine = m.from_id === user.id;
+        html += `<div class="msg ${mine ? 'mine' : 'other'}">${!mine ? `<div class="msg-sender">${m.sender_name || '?'}</div>` : ''}${m.text.replace(/\n/g, '<br>')}<span class="msg-time">${new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}${mine ? ' ✓' : ''}</span></div>`;
+      }
+    });
+
+    let op = '';
+    if (order && order.buyer_id === user.id && order.status === 'active') {
+      op = `<div class="chat-order-panel"><h4>📦 Заказ #${order.id}</h4><div class="cop-btns"><button class="btn btn-g btn-sm" onclick="confirmOrder(${order.id})">✅ Подтвердить</button>${!order.disputed ? `<button class="btn btn-r btn-sm" onclick="openDispute(${order.id})">⚠️</button>` : ''}</div></div>`;
+    }
+
+    const name = chat.type === 'support' ? '🛡️ Поддержка' : (order ? 'Заказ #' + order.id : 'Чат');
+
+    document.getElementById('chatMain').innerHTML = `<div class="chat-top"><div class="chat-top-left"><div class="chat-top-info"><div class="ct-name">${name}</div></div></div></div><div class="chat-msgs" id="chatMsgs">${html}</div>${op}<div class="chat-input-wrap"><input id="chatInp" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMsg()"><button class="btn btn-p btn-sm" onclick="sendMsg()">📤</button></div>`;
+    document.getElementById('chatMsgs').scrollTop = 9e9;
+    loadChatList();
+  } catch (e) { notify(e.message, 'error') }
+}
+
+async function sendMsg() {
+  if (!curChat) return;
+  const inp = document.getElementById('chatInp');
+  const text = inp.value.trim(); if (!text) return;
+  try {
+    await api('/api/chats/' + curChat + '/messages', { method: 'POST', body: JSON.stringify({ text }) });
+    inp.value = '';
+    loadChat(curChat);
+  } catch (e) { notify(e.message, 'error') }
+}
+
+// ==================== SUPPORT ====================
+async function loadSupport() {
+  try {
+    const stats = await api('/api/stats/admin');
+    document.getElementById('supStats').innerHTML = `<div class="stat-card orange"><div class="s-num">${stats.pending}</div><div class="s-lbl">Модерация</div></div><div class="stat-card red"><div class="s-num">${stats.open_disputes}</div><div class="s-lbl">Споры</div></div><div class="stat-card cyan"><div class="s-num">${stats.support_chats}</div><div class="s-lbl">Чаты</div></div>`;
+    supTab('mod', document.querySelector('#page-support .tab.act'));
+  } catch (e) {}
+}
+
+async function supTab(tab, btn) {
+  document.querySelectorAll('#page-support .tab').forEach(t => t.classList.remove('act')); if (btn) btn.classList.add('act');
+  const c = document.getElementById('supContent');
+
+  if (tab === 'mod') {
+    try {
+      const list = await api('/api/listings/admin/pending');
+      if (!list.length) { c.innerHTML = '<div class="card card-p" style="text-align:center;color:var(--t3)">Нет ✅</div>'; return }
+      c.innerHTML = '<div class="table-wrap"><table><thead><tr><th>ID</th><th>Название</th><th>Цена</th><th></th></tr></thead><tbody>' + list.map(l => `<tr><td>#${l.id}</td><td style="font-weight:600;cursor:pointer" onclick="openDet(${l.id})">${l.title}</td><td style="color:var(--green)">${l.price?.toLocaleString()}₽</td><td><button class="btn btn-g btn-sm" onclick="moderate(${l.id},'approved')">✓</button> <button class="btn btn-r btn-sm" onclick="moderate(${l.id},'rejected')">✕</button></td></tr>`).join('') + '</tbody></table></div>';
+    } catch (e) {}
+  }
+  else if (tab === 'disputes') {
+    try {
+      const disps = await api('/api/disputes');
+      c.innerHTML = disps.length ? disps.map(d => `<div class="dispute-card"><h4>⚖️ #${d.id} — ${d.listing_title}</h4><div class="d-meta">👤 ${d.buyer_name} ↔ ${d.seller_name} | ${d.status === 'open' ? '🔴 Открыт' : '🟢 ' + d.resolution}</div><div class="d-reason">${d.reason}</div>${d.status === 'open' ? `<div style="display:flex;gap:4px">${d.chat_id ? `<button class="btn btn-s btn-sm" onclick="curChat=${d.chat_id};goPage('messages')">💬</button>` : ''}<button class="btn btn-g btn-sm" onclick="resolveDisp(${d.id},'seller')">→Продавец</button><button class="btn btn-r btn-sm" onclick="resolveDisp(${d.id},'buyer')">→Возврат</button></div>` : ''}</div>`).join('') : '<div class="card card-p" style="text-align:center;color:var(--t3)">Нет</div>';
+    } catch (e) {}
+  }
+  else if (tab === 'chats') {
+    try {
+      const chats = await api('/api/chats/support/list');
+      c.innerHTML = chats.length ? '<div class="table-wrap"><table><thead><tr><th>Юзер</th><th>Посл.</th><th></th></tr></thead><tbody>' + chats.map(ch => `<tr><td style="font-weight:600">${ch.user_name || '?'}</td><td style="color:var(--t3);font-size:9px">${ch.last_message?.text?.slice(0, 40) || ''}</td><td><button class="btn btn-cyan btn-sm" onclick="joinSupChat(${ch.id})">💬</button></td></tr>`).join('') + '</tbody></table></div>' : '<div class="card card-p" style="text-align:center;color:var(--t3)">Нет</div>';
+    } catch (e) {}
+  }
+}
+
+async function moderate(id, status) {
+  try { await api('/api/listings/' + id + '/moderate', { method: 'PUT', body: JSON.stringify({ status }) }); notify(status === 'approved' ? '✅' : '❌'); loadSupport() }
+  catch (e) { notify(e.message, 'error') }
+}
+
+async function resolveDisp(id, resolution) {
+  try { await api('/api/disputes/' + id + '/resolve', { method: 'POST', body: JSON.stringify({ resolution }) }); notify('⚖️ Решено'); loadSupport() }
+  catch (e) { notify(e.message, 'error') }
+}
+
+async function joinSupChat(chatId) {
+  try { await api('/api/chats/support/' + chatId + '/join', { method: 'POST' }); curChat = chatId; goPage('messages') }
+  catch (e) { notify(e.message, 'error') }
+}
+
+// ==================== ADMIN ====================
+async function loadAdmin() {
+  try {
+    const stats = await api('/api/stats/admin');
+    document.getElementById('aStats').innerHTML = `<div class="stat-card purple"><div class="s-num">${stats.total_listings}</div><div class="s-lbl">Объявлений</div></div><div class="stat-card green"><div class="s-num">${stats.users}</div><div class="s-lbl">Юзеров</div></div><div class="stat-card orange"><div class="s-num">${stats.orders}</div><div class="s-lbl">Заказов</div></div>`;
+    admTab('users', document.querySelector('#page-admin .tab.act'));
+  } catch (e) {}
+}
+
+async function admTab(tab, btn) {
+  document.querySelectorAll('#page-admin .tab').forEach(t => t.classList.remove('act')); if (btn) btn.classList.add('act');
+  const c = document.getElementById('aContent');
+
+  if (tab === 'users') {
+    try {
+      const users = await api('/api/users');
+      c.innerHTML = '<div class="table-wrap"><table><thead><tr><th>ID</th><th>Имя</th><th>Email</th><th>Роль</th><th>Баланс</th><th></th></tr></thead><tbody>' + users.map(u => `<tr><td>#${u.id}</td><td style="font-weight:600">${u.name}</td><td style="color:var(--t3)">${u.email}</td><td><span class="status-badge ${u.role === 'admin' ? 'st-approved' : u.role === 'support' ? 'st-support' : 'st-pending'}">${u.role}</span></td><td style="color:var(--green)">${u.balance?.toLocaleString()}₽</td><td>${u.role === 'user' ? `<button class="btn btn-cyan btn-sm" onclick="setRole(${u.id},'support')">→Сап</button>` : u.role === 'support' ? `<button class="btn btn-o btn-sm" onclick="setRole(${u.id},'user')">→Юз</button>` : ''}</td></tr>`).join('') + '</tbody></table></div>';
+    } catch (e) {}
+  }
+  else if (tab === 'all') {
+    try {
+      const list = await api('/api/listings/admin/all');
+      c.innerHTML = '<div class="table-wrap"><table><thead><tr><th>ID</th><th>Название</th><th>Цена</th><th>Статус</th></tr></thead><tbody>' + list.map(l => `<tr><td>#${l.id}</td><td style="font-weight:600">${l.title}</td><td style="color:var(--green)">${l.final_price?.toLocaleString()}₽</td><td><span class="status-badge st-${l.sold ? 'rejected' : l.status}">${l.sold ? 'Продано' : l.status === 'approved' ? 'Актив' : l.status === 'pending' ? 'Мод.' : 'Откл.'}</span></td></tr>`).join('') + '</tbody></table></div>';
+    } catch (e) {}
+  }
+  else if (tab === 'tx') {
+    try {
+      const txs = await api('/api/transactions/all');
+      c.innerHTML = txs.length ? '<div class="table-wrap"><table><thead><tr><th>Юзер</th><th>Описание</th><th>Сумма</th><th>Дата</th></tr></thead><tbody>' + txs.map(t => `<tr><td>${t.user_name || '?'}</td><td style="font-size:9px">${t.description}</td><td style="color:${t.amount >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600">${t.amount >= 0 ? '+' : ''}${t.amount?.toLocaleString()}₽</td><td style="color:var(--t3);font-size:9px">${new Date(t.created_at).toLocaleString()}</td></tr>`).join('') + '</tbody></table></div>' : '<div style="color:var(--t3);text-align:center">Нет</div>';
+    } catch (e) {}
+  }
+}
+
+async function setRole(uid, role) {
+  try { await api('/api/users/' + uid + '/role', { method: 'PUT', body: JSON.stringify({ role }) }); notify('✅'); loadAdmin() }
+  catch (e) { notify(e.message, 'error') }
+}
+
+// ==================== STATS ====================
+async function loadPublicStats() {
+  try {
+    const s = await api('/api/stats/public');
+    document.getElementById('hS1').textContent = s.listings;
+    document.getElementById('hS2').textContent = s.users;
+  } catch (e) {}
+}
+
+async function loadOnline() {
+  try {
+    const d = await api('/api/online');
+    document.getElementById('onlineCnt').textContent = d.count;
+  } catch (e) {}
+}
+
+// ==================== INIT ====================
+(async () => {
+  await loadUser();
+  loadPublicStats();
+  loadCatalog();
+  setInterval(loadOnline, 10000);
+  setInterval(loadPublicStats, 30000);
+  loadOnline();
+})();
+</script>
+</body>
+</html>
